@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "lightningcss"
-version = "1.0.0-alpha.50"
+version = "1.0.0-alpha.51"
 authors = ["Devon Govett <devongovett@gmail.com>"]
 description = "A CSS parser, transformer, and minifier"
 readme = "README.md"

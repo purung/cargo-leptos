@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66.0"
+rust-version = "1.67.1"
 name = "flexi_logger"
-version = "0.27.2"
+version = "0.27.3"
 authors = ["emabee <meinolf.block@sap.com>"]
 description = "An easy-to-configure and flexible logger that writes logs to stderr or stdout and/or to files. It allows custom logline formats, and it allows changing the log specification at runtime. It also allows defining additional log streams, e.g. for alert or security messages."
 homepage = "https://crates.io/crates/flexi_logger"

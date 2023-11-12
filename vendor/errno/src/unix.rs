@@ -13,7 +13,7 @@
 // except according to those terms.
 
 use core::str;
-use libc::{self, c_char, c_int, size_t, strlen};
+use libc::{self, c_int, size_t, strerror_r, strlen};
 
 use crate::Errno;
 
@@ -56,7 +56,13 @@ pub fn set_errno(Errno(errno): Errno) {
 
 extern "C" {
     #[cfg_attr(
-        any(target_os = "macos", target_os = "ios", target_os = "freebsd"),
+        any(
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "freebsd"
+        ),
         link_name = "__error"
     )]
     #[cfg_attr(
@@ -65,7 +71,8 @@ extern "C" {
             target_os = "netbsd",
             target_os = "bitrig",
             target_os = "android",
-            target_os = "espidf"
+            target_os = "espidf",
+            target_env = "newlib"
         ),
         link_name = "__errno"
     )]
@@ -86,10 +93,4 @@ extern "C" {
     #[cfg_attr(target_os = "aix", link_name = "_Errno")]
     #[cfg_attr(target_os = "nto", link_name = "__get_errno_ptr")]
     fn errno_location() -> *mut c_int;
-
-    #[cfg_attr(
-        any(target_os = "linux", target_os = "hurd"),
-        link_name = "__xpg_strerror_r"
-    )]
-    fn strerror_r(errnum: c_int, buf: *mut c_char, buflen: size_t) -> c_int;
 }

@@ -10,17 +10,28 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-name = "redox_syscall"
-version = "0.2.16"
-authors = ["Jeremy Soller <jackpot51@gmail.com>"]
-description = "A Rust library to access raw Redox system calls"
-documentation = "https://docs.rs/redox_syscall"
+edition = "2021"
+name = "libredox"
+version = "0.0.1"
+authors = ["4lDO2 <4lDO2@protonmail.com>"]
+exclude = ["target"]
+description = "Redox stable ABI"
 license = "MIT"
-repository = "https://gitlab.redox-os.org/redox-os/syscall"
-
-[lib]
-name = "syscall"
+repository = "https://gitlab.redox-os.org/redox-os/libredox.git"
 
 [dependencies.bitflags]
-version = "1.1.0"
+version = "2"
+
+[dependencies.libc]
+version = "0.2"
+
+[dependencies.redox_syscall]
+version = "0.4"
+
+[features]
+call = []
+default = [
+    "scheme",
+    "call",
+]
+scheme = ["call"]

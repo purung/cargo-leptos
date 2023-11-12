@@ -72,13 +72,13 @@ pub fn test_double_spill() {
     );
 }
 
-/// https://github.com/servo/rust-smallvec/issues/4
+// https://github.com/servo/rust-smallvec/issues/4
 #[test]
 fn issue_4() {
     SmallVec::<[Box<u32>; 2]>::new();
 }
 
-/// https://github.com/servo/rust-smallvec/issues/5
+// https://github.com/servo/rust-smallvec/issues/5
 #[test]
 fn issue_5() {
     assert!(Some(SmallVec::<[&u32; 2]>::new()).is_some());
@@ -833,12 +833,9 @@ fn test_write() {
 }
 
 #[cfg(feature = "serde")]
-extern crate bincode;
-
-#[cfg(feature = "serde")]
 #[test]
 fn test_serde() {
-    use self::bincode::{config, deserialize};
+    use bincode::{config, deserialize};
     let mut small_vec: SmallVec<[i32; 2]> = SmallVec::new();
     small_vec.push(1);
     let encoded = config().limit(100).serialize(&small_vec).unwrap();

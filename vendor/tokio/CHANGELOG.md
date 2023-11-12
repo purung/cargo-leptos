@@ -1,3 +1,31 @@
+# 1.34.0 (November 19th, 2023)
+
+### Fixed
+
+- io: allow `clear_readiness` after io driver shutdown ([#6067])
+- io: fix integer overflow in `take` ([#6080])
+- io: fix I/O resource hang ([#6134])
+- sync: fix `broadcast::channel` link ([#6100])
+
+### Changed
+
+- macros: use `::core` qualified imports instead of `::std` inside `tokio::test` macro ([#5973])
+
+### Added
+
+- fs: update cfg attr in `fs::read_dir` to include `aix` ([#6075])
+- sync: add `mpsc::Receiver::recv_many` ([#6010])
+- tokio: added vita target support ([#6094])
+
+[#5973]: https://github.com/tokio-rs/tokio/pull/5973
+[#6067]: https://github.com/tokio-rs/tokio/pull/6067
+[#6080]: https://github.com/tokio-rs/tokio/pull/6080
+[#6134]: https://github.com/tokio-rs/tokio/pull/6134
+[#6100]: https://github.com/tokio-rs/tokio/pull/6100
+[#6075]: https://github.com/tokio-rs/tokio/pull/6075
+[#6010]: https://github.com/tokio-rs/tokio/pull/6010
+[#6094]: https://github.com/tokio-rs/tokio/pull/6094
+
 # 1.33.0 (October 9, 2023)
 
 ### Fixed
@@ -9,7 +37,6 @@
 
 ### Changed
 
-- macros: use `::core` imports instead of `::std` in `tokio::test` ([#5973])
 - sync: use Acquire/Release orderings instead of SeqCst in `watch` ([#6018])
 
 ### Added
@@ -56,7 +83,6 @@
 [#5962]: https://github.com/tokio-rs/tokio/pull/5962
 [#5971]: https://github.com/tokio-rs/tokio/pull/5971
 [#5972]: https://github.com/tokio-rs/tokio/pull/5972
-[#5973]: https://github.com/tokio-rs/tokio/pull/5973
 [#5977]: https://github.com/tokio-rs/tokio/pull/5977
 [#5978]: https://github.com/tokio-rs/tokio/pull/5978
 [#5984]: https://github.com/tokio-rs/tokio/pull/5984
@@ -85,7 +111,7 @@
 
 ### Fixed
 
-- sync: fix potential quadradic behavior in `broadcast::Receiver` ([#5925])
+- sync: fix potential quadratic behavior in `broadcast::Receiver` ([#5925])
 
 ### Added
 

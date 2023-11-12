@@ -10,22 +10,31 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "redox_users"
-version = "0.4.3"
-authors = ["Jose Narvaez <goyox86@gmail.com>", "Wesley Hershberger <mggmugginsmc@gmail.com>"]
+version = "0.4.4"
+authors = [
+    "Jose Narvaez <goyox86@gmail.com>",
+    "Wesley Hershberger <mggmugginsmc@gmail.com>",
+]
 description = "A Rust library to access Redox users and groups functionality"
 documentation = "https://docs.rs/redox_users"
 readme = "README.md"
-keywords = ["redox", "auth"]
+keywords = [
+    "redox",
+    "auth",
+]
 license = "MIT"
 repository = "https://gitlab.redox-os.org/redox-os/users"
+
 [dependencies.getrandom]
 version = "0.2"
 features = ["std"]
 
-[dependencies.redox_syscall]
-version = "0.2.11"
+[dependencies.libredox]
+version = "0.0.1"
+features = ["call"]
+default-features = false
 
 [dependencies.rust-argon2]
 version = "0.8"
@@ -40,5 +49,8 @@ features = ["zeroize_derive"]
 optional = true
 
 [features]
-auth = ["rust-argon2", "zeroize"]
+auth = [
+    "rust-argon2",
+    "zeroize",
+]
 default = ["auth"]

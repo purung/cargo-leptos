@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.60.0"
 name = "zerocopy"
-version = "0.7.21"
+version = "0.7.25"
 authors = ["Joshua Liebow-Feeser <joshlf@google.com>"]
 exclude = [".*"]
 description = "Utilities for zero-copy parsing and serialization"
@@ -22,11 +22,16 @@ license = "BSD-2-Clause OR Apache-2.0 OR MIT"
 repository = "https://github.com/google/zerocopy"
 
 [package.metadata.ci]
-pinned-nightly = "nightly-2023-10-30"
+pinned-nightly = "nightly-2023-11-02"
 pinned-stable = "1.73.0"
 
 [package.metadata.docs.rs]
 all-features = true
+rustdoc-args = [
+    "--cfg",
+    "doc_cfg",
+    "--generate-link-to-definition",
+]
 
 [package.metadata.playground]
 features = ["__internal_use_only_features_that_work_on_stable"]
@@ -37,7 +42,7 @@ optional = true
 default-features = false
 
 [dependencies.zerocopy-derive]
-version = "=0.7.21"
+version = "=0.7.25"
 optional = true
 
 [dev-dependencies.assert_matches]
@@ -64,7 +69,7 @@ version = "=1.0.85"
 features = ["diff"]
 
 [dev-dependencies.zerocopy-derive]
-version = "=0.7.21"
+version = "=0.7.25"
 
 [features]
 __internal_use_only_features_that_work_on_stable = [
@@ -79,4 +84,4 @@ simd = []
 simd-nightly = ["simd"]
 
 [target."cfg(any())".dependencies.zerocopy-derive]
-version = "=0.7.21"
+version = "=0.7.25"

@@ -223,6 +223,7 @@
 ))]
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(feature = "simd-nightly", feature(stdsimd))]
+#![cfg_attr(doc_cfg, feature(doc_cfg))]
 #![cfg_attr(
     __INTERNAL_USE_ONLY_NIGHLTY_FEATURES_IN_TESTS,
     feature(layout_for_ptr, strict_provenance)
@@ -231,6 +232,7 @@
 mod macros;
 
 #[cfg(feature = "byteorder")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "byteorder")))]
 pub mod byteorder;
 #[doc(hidden)]
 pub mod macro_util;
@@ -239,10 +241,21 @@ mod util;
 mod wrappers;
 
 #[cfg(feature = "byteorder")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "byteorder")))]
 pub use crate::byteorder::*;
 pub use crate::wrappers::*;
+
 #[cfg(any(feature = "derive", test))]
-pub use zerocopy_derive::*;
+#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
+pub use zerocopy_derive::{AsBytes, FromBytes, Unaligned};
+
+// `pub use` separately here so that we can mark it `#[doc(hidden)]`.
+//
+// TODO(#29): Remove this or add a doc comment.
+#[cfg(any(feature = "derive", test))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
+#[doc(hidden)]
+pub use zerocopy_derive::KnownLayout;
 
 use core::{
     cell::{self, RefMut},
@@ -703,6 +716,8 @@ impl_known_layout!(
     T: ?Sized => PhantomData<T>,
     T         => Wrapping<T>,
     T         => MaybeUninit<T>,
+    T: ?Sized => *const T,
+    T: ?Sized => *mut T,
 );
 impl_known_layout!(const N: usize, T => [T; N]);
 
@@ -818,6 +833,7 @@ safety_comment! {
 // TODO(#146): Document why we don't require an enum to have an explicit `repr`
 // attribute.
 #[cfg(any(feature = "derive", test))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "derive")))]
 pub use zerocopy_derive::FromZeroes;
 
 /// Types for which a sequence of bytes all set to zero represents a valid
@@ -1004,6 +1020,7 @@ pub unsafe trait FromZeroes {
     ///
     /// Panics if allocation of `size_of::<Self>()` bytes fails.
     #[cfg(feature = "alloc")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
     #[inline]
     fn new_box_zeroed() -> Box<Self>
     where
@@ -1051,6 +1068,7 @@ pub unsafe trait FromZeroes {
     /// * Panics if `size_of::<Self>() * len` overflows.
     /// * Panics if allocation of `size_of::<Self>() * len` bytes fails.
     #[cfg(feature = "alloc")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
     #[inline]
     fn new_box_slice_zeroed(len: usize) -> Box<[Self]>
     where
@@ -1117,6 +1135,7 @@ pub unsafe trait FromZeroes {
     /// * Panics if `size_of::<Self>() * len` overflows.
     /// * Panics if allocation of `size_of::<Self>() * len` bytes fails.
     #[cfg(feature = "alloc")]
+    #[cfg_attr(doc_cfg, doc(cfg(feature = "new_vec_zeroed")))]
     #[inline(always)]
     fn new_vec_zeroed(len: usize) -> Vec<Self>
     where
@@ -1296,6 +1315,134 @@ pub unsafe trait FromBytes: FromZeroes {
         Self: Sized + AsBytes,
     {
         Ref::<&mut [u8], Self>::new_from_suffix(bytes).map(|(_, r)| r.into_mut())
+    }
+
+    /// Interprets the given `bytes` as a `&[Self]` without copying.
+    ///
+    /// If `bytes.len() % size_of::<T>() != 0` or `bytes` is not aligned to
+    /// `align_of::<T>()`, this returns `None`.
+    ///
+    /// If you need to convert a specific number of slice elements, see
+    /// [`slice_from_prefix`](FromBytes::slice_from_prefix) or
+    /// [`slice_from_suffix`](FromBytes::slice_from_suffix).
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn slice_from(bytes: &[u8]) -> Option<&[Self]>
+    where
+        Self: Sized,
+    {
+        Ref::<_, [Self]>::new_slice(bytes).map(|r| r.into_slice())
+    }
+
+    /// Interprets the prefix of the given `bytes` as a `&[Self]` with length
+    /// equal to `count` without copying.
+    ///
+    /// This method verifies that `bytes.len() >= size_of::<T>() * count`
+    /// and that `bytes` is aligned to `align_of::<T>()`. It consumes the
+    /// first `size_of::<T>() * count` bytes from `bytes` to construct a
+    /// `&[Self]`, and returns the remaining bytes to the caller. It also
+    /// ensures that `sizeof::<T>() * count` does not overflow a `usize`.
+    /// If any of the length, alignment, or overflow checks fail, it returns
+    /// `None`.
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn slice_from_prefix(bytes: &[u8], count: usize) -> Option<(&[Self], &[u8])>
+    where
+        Self: Sized,
+    {
+        Ref::<_, [Self]>::new_slice_from_prefix(bytes, count).map(|(r, b)| (r.into_slice(), b))
+    }
+
+    /// Interprets the suffix of the given `bytes` as a `&[Self]` with length
+    /// equal to `count` without copying.
+    ///
+    /// This method verifies that `bytes.len() >= size_of::<T>() * count`
+    /// and that `bytes` is aligned to `align_of::<T>()`. It consumes the
+    /// last `size_of::<T>() * count` bytes from `bytes` to construct a
+    /// `&[Self]`, and returns the preceding bytes to the caller. It also
+    /// ensures that `sizeof::<T>() * count` does not overflow a `usize`.
+    /// If any of the length, alignment, or overflow checks fail, it returns
+    /// `None`.
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn slice_from_suffix(bytes: &[u8], count: usize) -> Option<(&[u8], &[Self])>
+    where
+        Self: Sized,
+    {
+        Ref::<_, [Self]>::new_slice_from_suffix(bytes, count).map(|(b, r)| (b, r.into_slice()))
+    }
+
+    /// Interprets the given `bytes` as a `&mut [Self]` without copying.
+    ///
+    /// If `bytes.len() % size_of::<T>() != 0` or `bytes` is not aligned to
+    /// `align_of::<T>()`, this returns `None`.
+    ///
+    /// If you need to convert a specific number of slice elements, see
+    /// [`mut_slice_from_prefix`](FromBytes::mut_slice_from_prefix) or
+    /// [`mut_slice_from_suffix`](FromBytes::mut_slice_from_suffix).
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn mut_slice_from(bytes: &mut [u8]) -> Option<&mut [Self]>
+    where
+        Self: Sized + AsBytes,
+    {
+        Ref::<_, [Self]>::new_slice(bytes).map(|r| r.into_mut_slice())
+    }
+
+    /// Interprets the prefix of the given `bytes` as a `&mut [Self]` with length
+    /// equal to `count` without copying.
+    ///
+    /// This method verifies that `bytes.len() >= size_of::<T>() * count`
+    /// and that `bytes` is aligned to `align_of::<T>()`. It consumes the
+    /// first `size_of::<T>() * count` bytes from `bytes` to construct a
+    /// `&[Self]`, and returns the remaining bytes to the caller. It also
+    /// ensures that `sizeof::<T>() * count` does not overflow a `usize`.
+    /// If any of the length, alignment, or overflow checks fail, it returns
+    /// `None`.
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn mut_slice_from_prefix(bytes: &mut [u8], count: usize) -> Option<(&mut [Self], &mut [u8])>
+    where
+        Self: Sized + AsBytes,
+    {
+        Ref::<_, [Self]>::new_slice_from_prefix(bytes, count).map(|(r, b)| (r.into_mut_slice(), b))
+    }
+
+    /// Interprets the suffix of the given `bytes` as a `&mut [Self]` with length
+    /// equal to `count` without copying.
+    ///
+    /// This method verifies that `bytes.len() >= size_of::<T>() * count`
+    /// and that `bytes` is aligned to `align_of::<T>()`. It consumes the
+    /// last `size_of::<T>() * count` bytes from `bytes` to construct a
+    /// `&[Self]`, and returns the preceding bytes to the caller. It also
+    /// ensures that `sizeof::<T>() * count` does not overflow a `usize`.
+    /// If any of the length, alignment, or overflow checks fail, it returns
+    /// `None`.
+    ///
+    /// # Panics
+    ///
+    /// If `T` is a zero-sized type.
+    #[inline]
+    fn mut_slice_from_suffix(bytes: &mut [u8], count: usize) -> Option<(&mut [u8], &mut [Self])>
+    where
+        Self: Sized + AsBytes,
+    {
+        Ref::<_, [Self]>::new_slice_from_suffix(bytes, count).map(|(b, r)| (b, r.into_mut_slice()))
     }
 
     /// Reads a copy of `Self` from `bytes`.
@@ -1735,6 +1882,37 @@ safety_comment! {
 
 safety_comment! {
     /// SAFETY:
+    /// The following types can be transmuted from `[0u8; size_of::<T>()]`. [1]
+    /// None of them contain `UnsafeCell`s, and so they all soundly implement
+    /// `FromZeroes`.
+    ///
+    /// [1] Per
+    /// https://doc.rust-lang.org/nightly/core/option/index.html#representation:
+    ///
+    ///   Rust guarantees to optimize the following types `T` such that
+    ///   [`Option<T>`] has the same size and alignment as `T`. In some of these
+    ///   cases, Rust further guarantees that `transmute::<_, Option<T>>([0u8;
+    ///   size_of::<T>()])` is sound and produces `Option::<T>::None`. These
+    ///   cases are identified by the second column:
+    ///
+    ///   | `T`                 | `transmute::<_, Option<T>>([0u8; size_of::<T>()])` sound? |
+    ///   |---------------------|-----------------------------------------------------------|
+    ///   | [`Box<U>`]          | when `U: Sized`                                           |
+    ///   | `&U`                | when `U: Sized`                                           |
+    ///   | `&mut U`            | when `U: Sized`                                           |
+    ///   | [`ptr::NonNull<U>`] | when `U: Sized`                                           |
+    ///
+    /// TODO(#429), TODO(https://github.com/rust-lang/rust/pull/115333): Cite
+    /// the Stable docs once they're available.
+    #[cfg(feature = "alloc")]
+    unsafe_impl!(T => FromZeroes for Option<Box<T>>);
+    unsafe_impl!(T => FromZeroes for Option<&'_ T>);
+    unsafe_impl!(T => FromZeroes for Option<&'_ mut T>);
+    unsafe_impl!(T => FromZeroes for Option<NonNull<T>>);
+}
+
+safety_comment! {
+    /// SAFETY:
     /// For all `T`, `PhantomData<T>` has size 0 and alignment 1. [1]
     /// - `FromZeroes`, `FromBytes`: There is only one possible sequence of 0
     ///   bytes, and `PhantomData` is inhabited.
@@ -1856,6 +2034,22 @@ safety_comment! {
     unsafe_impl!(T: FromBytes => FromBytes for [T]);
     unsafe_impl!(T: AsBytes => AsBytes for [T]);
     unsafe_impl!(T: Unaligned => Unaligned for [T]);
+}
+safety_comment! {
+    /// SAFETY:
+    /// - `FromZeroes`: For thin pointers (note that `T: Sized`), the zero
+    ///   pointer is considered "null". [1] No operations which require
+    ///   provenance are legal on null pointers, so this is not a footgun.
+    ///
+    /// NOTE(#170): Implementing `FromBytes` and `AsBytes` for raw pointers
+    /// would be sound, but carries provenance footguns. We want to support
+    /// `FromBytes` and `AsBytes` for raw pointers eventually, but we are
+    /// holding off until we can figure out how to address those footguns.
+    ///
+    /// [1] TODO(https://github.com/rust-lang/rust/pull/116988): Cite the
+    /// documentation once this PR lands.
+    unsafe_impl!(T => FromZeroes for *const T);
+    unsafe_impl!(T => FromZeroes for *mut T);
 }
 
 // SIMD support
@@ -3649,6 +3843,7 @@ mod alloc_support {
 }
 
 #[cfg(feature = "alloc")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[doc(inline)]
 pub use alloc_support::*;
 
@@ -3656,7 +3851,7 @@ pub use alloc_support::*;
 mod tests {
     #![allow(clippy::unreadable_literal)]
 
-    use core::{convert::TryInto as _, ops::Deref};
+    use core::{cell::UnsafeCell, convert::TryInto as _, ops::Deref};
 
     use static_assertions::assert_impl_all;
 
@@ -5351,6 +5546,16 @@ mod tests {
         // Implements none of the ZC traits.
         struct NotZerocopy;
 
+        #[cfg(feature = "alloc")]
+        assert_impls!(Option<Box<UnsafeCell<NotZerocopy>>>: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<Box<[UnsafeCell<NotZerocopy>]>>: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<&'static UnsafeCell<NotZerocopy>>: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<&'static [UnsafeCell<NotZerocopy>]>: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<&'static mut UnsafeCell<NotZerocopy>>: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<&'static mut [UnsafeCell<NotZerocopy>]>: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<NonNull<UnsafeCell<NotZerocopy>>>: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(Option<NonNull<[UnsafeCell<NotZerocopy>]>>: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+
         assert_impls!(PhantomData<NotZerocopy>: KnownLayout, FromZeroes, FromBytes, AsBytes, Unaligned);
         assert_impls!(PhantomData<[u8]>: KnownLayout, FromZeroes, FromBytes, AsBytes, Unaligned);
 
@@ -5374,6 +5579,13 @@ mod tests {
         assert_impls!([NotZerocopy; 0]: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
         assert_impls!([u8; 1]: KnownLayout, FromZeroes, FromBytes, AsBytes, Unaligned);
         assert_impls!([NotZerocopy; 1]: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+
+        assert_impls!(*const NotZerocopy: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(*mut NotZerocopy: KnownLayout, FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(*const [NotZerocopy]: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(*mut [NotZerocopy]: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(*const dyn Debug: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
+        assert_impls!(*mut dyn Debug: KnownLayout, !FromZeroes, !FromBytes, !AsBytes, !Unaligned);
 
         #[cfg(feature = "simd")]
         {

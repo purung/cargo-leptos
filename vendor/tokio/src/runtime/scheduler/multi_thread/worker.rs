@@ -543,6 +543,7 @@ impl Context {
                 } else {
                     self.park(core)
                 };
+                core.stats.start_processing_scheduled_tasks();
             }
         }
 
@@ -795,7 +796,7 @@ impl Core {
             // safety: passing in the correct `inject::Synced`.
             let mut tasks = unsafe { worker.inject().pop_n(&mut synced.inject, n) };
 
-            // Pop the first task to return immedietly
+            // Pop the first task to return immediately
             let ret = tasks.next();
 
             // Push the rest of the on the run queue
@@ -1025,7 +1026,7 @@ impl Handle {
             // Otherwise, use the inject queue.
             self.push_remote_task(task);
             self.notify_parked_remote();
-        })
+        });
     }
 
     pub(super) fn schedule_option_task_without_yield(&self, task: Option<Notified>) {

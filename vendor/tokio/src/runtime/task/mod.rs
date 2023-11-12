@@ -179,7 +179,7 @@ mod harness;
 use self::harness::Harness;
 
 mod id;
-#[cfg_attr(not(tokio_unstable), allow(unreachable_pub))]
+#[cfg_attr(not(tokio_unstable), allow(unreachable_pub, unused_imports))]
 pub use id::{id, try_id, Id};
 
 #[cfg(feature = "rt")]
@@ -448,7 +448,7 @@ impl<S: Schedule> UnownedTask<S> {
     }
 
     pub(crate) fn shutdown(self) {
-        self.into_task().shutdown()
+        self.into_task().shutdown();
     }
 }
 
